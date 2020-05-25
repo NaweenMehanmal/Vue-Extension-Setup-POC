@@ -4,19 +4,31 @@ const entries = {
 };
 
 module.exports = {
-  configureWebpack: (config) => {
-    // Deleting default entry
-    delete config.entry.app;
-    // Change sourcemap type
-    // config.devtool = "inline-source-map";
-  },
   chainWebpack: (config) => {
+    // Deleting default entry
+    config.entryPoints.delete("app");
     // Add new entry points
     for (const key of Object.keys(entries)) {
       config.entry(key).add(entries[key]);
     }
-    // Remove chunks (for now) - TODO: fix this to optimize duplicate dependencies
-    config.optimization.delete("splitChunks");
+    // Optimize the new entry points added in
+    config.optimization.splitChunks({
+      cacheGroups: {
+        vendors: {
+          name: "chunk-vendors",
+          test: /[\\\/]node_modules[\\\/]/,
+          priority: -10,
+          chunks: ({ name }) => !Object.keys(entries).includes(name),
+        },
+        common: {
+          name: "chunk-common",
+          minChunks: 2,
+          priority: -20,
+          chunks: ({ name }) => !Object.keys(entries).includes(name),
+          reuseExistingChunk: true,
+        },
+      },
+    });
   },
   filenameHashing: true,
   productionSourceMap: false,
